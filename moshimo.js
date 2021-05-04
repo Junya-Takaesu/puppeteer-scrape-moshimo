@@ -4,19 +4,16 @@ const fs = require('fs');
 const config = require('./config.json');
 const cookies = require('./cookies.json');
 
-(async (resolve, reject) => {
+(async () => {
   let browser = await puppeteer.launch({
     headless: false,
     defaultViewport: null,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--start-maximized'],
-    // slowmo: 2000
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--start-maximized']
   });
   const context = browser.defaultBrowserContext();
   context.overridePermissions("https://af.moshimo.com/", []); // ブラウザからの API の使用許可のポップアップを無効化 ex: notificationとか
 
   let page = await browser.newPage();
-  // await page.setDefaultNavigationTimeout(100000);
-  // await page.setViewport({width: 1200, height: 800});
 
   try {
     if (!Object.keys(cookies).length) {
@@ -52,13 +49,8 @@ const cookies = require('./cookies.json');
 
     console.log(htmlSnippet);
 
-
     browser.close();
-    return resolve();
   } catch (e) {
     browser.close();
-    return reject(e);
   }
-
-  cookies = {}
 })();
