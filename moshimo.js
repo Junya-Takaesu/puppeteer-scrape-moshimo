@@ -4,53 +4,78 @@ const fs = require('fs');
 const config = require('./config.json');
 const cookies = require('./cookies.json');
 
-(async () => {
-  let browser = await puppeteer.launch({
-    headless: false,
-    defaultViewport: null,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--start-maximized']
-  });
+const puppeteer_config = {
+  headless: false,
+  defaultViewport: null,
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--start-maximized'
+  ]
+};
+
+const setUpBrowser = async () => {
+  const browser = await puppeteer.launch(puppeteer_config);
   const context = browser.defaultBrowserContext();
-  context.overridePermissions("https://af.moshimo.com/", []); // ブラウザからの API の使用許可のポップアップを無効化 ex: notificationとか
+  // ブラウザからの API の使用許可のポップアップを無効化 (notificationとか)
+  context.overridePermissions("https://af.moshimo.com/", []);
+  return browser;
+}
 
-  let page = await browser.newPage();
+const login = async () => {
+  const loginPageURL = "https://af.moshimo.com/af/shop/login";
+  const loginFormAccount = 'input.input-text[name="account"]';
+  const loginFormPassword = 'input.input-text[name="password"]';
+  const loginButton = '[name="login"]';
+  const userIconImage = '.shop-rank-image';
 
-  try {
-    if (!Object.keys(cookies).length) {
-      await page.goto("https://af.moshimo.com/af/shop/login");
-      await page.waitForSelector('input.input-text[name="account"]');
-      await page.type('input.input-text[name="account"]', config.username, {delay: 30});
-      await page.type('input.input-text[name="password"]', config.password, {delay: 30});
-      await page.click('[name="login"]', {delay: 30});
-      await page.waitForNavigation({waitUntil: "networkidle0"});
-      await page.waitForSelector('.shop-rank-image');
-      let currentCookies = await page.cookies();
-      fs.writeFileSync('./cookies.json', JSON.stringify(currentCookies));
-    } else {
-      await page.setCookie(...cookies); // cookie は期限切れの可能性あり
+  await page.goto(loginPageURL);
+  await page.waitForSelector(loginFormAccount);
+  await page.type(loginFormAccount, config.username, {delay: 30});
+  await page.type(loginFormPassword, config.password, {delay: 30});
+  await page.click(loginButton, {delay: 30});
+  await page.waitForNavigation({waitUntil: "networkidle0"}); // これが無いと・・・？
+  await page.waitForSelector(userIconImage);
+
+  const currentCookies = await page.cookies();
+  fs.writeFileSync('./cookies.json', JSON.stringify(currentCookies));
+
+  return;
+}
+
+// ---------------------------------------------------------------------- //
+
+let browser;
+let page;
+
+const main = () => {
+
+  return new Promise(async (resolve, reject) => {
+    browser = await setUpBrowser();
+    page = await browser.newPage();
+
+    const keywords = ["ruby on rails"];
+
+    try {
+      if (!Object.keys(cookies).length) {
+        await login();
+      } else {
+        await page.setCookie(...cookies); // cookie は期限切れの可能性あり
+      }
+
+      return resolve(browser);
+    } catch (e) {
+      return reject([e, browser]);
     }
-    await page.goto("https://af.moshimo.com/af/shop/promotion/source/rakuten?promotion_id=54&shop_site_id=398848", { waitUntil: "networkidle2" });
-    await page.waitForSelector(".red.bold");
-    await page.type('.search-text', "hoge");
-    await page.evaluate(async () => {
-      const searchTextBox = document.querySelector('.search-text');
-      searchTextBox.value = "ruby on rails";
-      return;
-    });
-    await page.click('#search-submit-button');
-    await page.waitForSelector(".red.bold");
+  });
+}
 
-    let advertising_items_max = 4;
-    await page.click('.result-item-list .result-item:nth-child(2) .result-preview img');
-    await page.click('#preview-type-2');
-    let htmlSnippet = await page.evaluate(async () => {
-      return document.querySelector('#active-preview-box .preview-source').value
-    });
-
-    console.log(htmlSnippet);
-
+main()
+  .then(browser => {
+    console.log("Done successfully");
     browser.close();
-  } catch (e) {
+  })
+  .catch(([e, browser]) => {
+    console.error(e);
     browser.close();
-  }
-})();
+  });
