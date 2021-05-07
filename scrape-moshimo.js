@@ -50,7 +50,7 @@ const generateHTML = async (searchWord, htmlSnippets) => {
   let html = "";
   htmlSnippets.forEach((snippet) => {
     html += `
-      <div class="text-center me-2 mb-2">
+      <div class="text-center me-2 mb-2 d-inline-block shadow-lg rounded border border-3">
         ${snippet}
       </div>
     `;
@@ -111,7 +111,7 @@ const scrapeSnippets = async(searchWord) => {
 
 const main = () => {
 
-  const keywords = ["ruby", "php", "javascript", "nodejs", "ruby on rails", "css", "linux", "docker", "react"];
+  const keywords = ["ruby", "php", "python","javascript", "ruby on rails", "css", "linux", "docker", "react.js", "vue.js", "node.js"];
 
   fs.mkdir(path.join(__dirname, snippetsDir), err => {
     if(err) throw err;
