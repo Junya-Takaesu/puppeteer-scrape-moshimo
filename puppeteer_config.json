@@ -1,9 +1,8 @@
 {
-  "headless": false,
+  "headless": true,
   "defaultViewport": null,
   "args": [
     "--no-sandbox",
-    "--disable-setuid-sandbox",
-    "--start-maximized"
+    "--disable-setuid-sandbox"
   ]
 }
